@@ -1,11 +1,23 @@
-// Modify this function to incorporate the Stripe payment redirect functionality
 function handleUsernameSubmit() {
     const username = document.getElementById('username').value;
-    // Assuming we do some validation and processing here before payment
-    
-    // Redirect to Stripe payment link
-    window.location.href = 'https://buy.stripe.com/test_3cI3cvbrE9vWdmJaN85AQ00';
-    
-    // After successful payment, the user will return to this page to show the report.
-    // You can trigger the report display here as needed
+
+    // Implement Stripe payment here
+    const stripe = Stripe('your-stripe-publishable-key'); // replace with your Stripe publishable key
+
+    // Create a Checkout Session with your server
+    fetch('/create-checkout-session', { // make sure this endpoint is set up on your server
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username})
+    })
+    .then((response) => response.json())
+    .then((sessionId) => {
+        return stripe.redirectToCheckout({ sessionId });
+    })
+    .then((result) => {
+        if (result.error) {
+            alert(result.error.message);
+        }
+    })
+    .catch((error) => console.error('Error:', error));
 }
