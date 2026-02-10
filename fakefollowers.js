@@ -37,53 +37,39 @@ const Selectors = {
 };
 
 // ----- Stripe integration -----
-// NOTE: For a Payment Link to redirect back with a success flag you must configure
-// the "After payment" redirect URL in your Stripe Dashboard to include
-// `?profile={USERNAME}&payment_success=true` (or use Checkout Sessions server-side).
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/test_3cI3cvbrE9vWdmJaN85AQ00";
 
-// Helper to detect return from Stripe (checks URL param or sessionStorage)
 const isReturningFromStripe = () => {
   const params = new URLSearchParams(window.location.search);
   return params.get('payment_success') === 'true' || !!sessionStorage.getItem('pendingUsername');
 }
 
-// Remove payment_success param and set clean profile param in URL
 const cleanReturnUrl = (username) => {
   const newUrl = `${window.location.pathname}?profile=${encodeURIComponent(username)}`;
   window.history.replaceState(null, null, newUrl);
 }
-// ------------------------------
 
 let HeadingColor = "#13144d";
 let TextColorWhite = "#ffffff";
 let UsernameColor = "#121b2e";
 let HeaderTitle = `Here's what our report looks like for`;
 
-//input
 const searchInput = document.querySelector("[input-data=query]");
 const submitButton = document.querySelector("[input-btn=check-profile]");
-const autocompleteLoaderEle = document.querySelector(
-  Selectors.AutocompleteLoader
-);
+const autocompleteLoaderEle = document.querySelector(Selectors.AutocompleteLoader);
 const buttonLoaderEle = document.querySelector(Selectors.ButtonLoader);
 const SampleHeaderEle = document.querySelector(Selectors.SampleHeader);
 const HeroAreaEle = document.querySelector(Selectors.HeroWrapper);
 const copyLinkEle = document.querySelector(Selectors.profileCopyLink);
 const MainHeroSectionEle = document.querySelector(Selectors.MainHeroSection);
 const NoProfileDateEle = document.querySelector(Selectors.NoProfileData);
-const NoSponsoredContentEle = document.querySelector(
-  Selectors.NoSponsoredContent
-);
-const SampleHeaderUsernameEle = document.querySelector(
-  Selectors.HeaderUsername
-);
+const NoSponsoredContentEle = document.querySelector(Selectors.NoSponsoredContent);
+const SampleHeaderUsernameEle = document.querySelector(Selectors.HeaderUsername);
 
 const fakeFollowersEle = document.querySelector(Selectors.fakeFollowers);
 const placeholderTitleEle = document.querySelector(Selectors.placeholderTitle);
 const mainSpinnerEle = document.querySelector(Selectors.mainSpinner);
 
-//dropdown list
 const resultList = document.querySelector("[data=result-list]");
 const listItem = document.querySelector("[data=list-item]");
 const listItemImgAttr = "[data=item-image]";
@@ -91,12 +77,11 @@ const listItemNameAttr = "[data=list-item-name]";
 const listItemUsernameAttr = "[data=list-item-username]";
 const listItemIsVerifiedAttr = "[data=item-is-verified]";
 
-//const loaderEle = document.querySelector("[data=loader]");
 const errorPopupEle = document.querySelector("[limit-error-popup]");
 
 let captchaToken;
 const uuid = crypto.randomUUID();
-//handle captcha
+
 turnstile.ready(function () {
   turnstile.render("#captcha-container", {
     sitekey: "0x4AAAAAAA9TbmzOYr163QHk",
@@ -106,16 +91,13 @@ turnstile.ready(function () {
       const url = new URL(window.location.href);
       const userhandle = url.searchParams.get("profile");
 
-      //update the opacity accordingly
-      updateAppState(userhandle);
+      updateAppState(userhandle, false);
       searchInput.value = userhandle;
 
-      //opacity zero if no params exists
       if (!userhandle) {
-        updateAppState("emmachamberlain");
+        updateAppState("emmachamberlain", false);
       }
 
-      // If returning from Stripe, try to show the report
       if (isReturningFromStripe()) {
         handlePostPayment();
       }
@@ -139,10 +121,7 @@ const fetchResults = debounce(async (req) => {
       method: "GET",
     });
     if (response.status === 429) {
-      //  console.log("Too many requests::", response.body);
       response = await response.json();
-      // console.log("Too many requests json::", response.body);
-      // alert("420");
       resultList.style.display = "none";
       errorPopupEle.style.display = "flex";
       return;
@@ -160,7 +139,6 @@ const fetchResults = debounce(async (req) => {
 const fetchFakeDataInfo = async (req) => {
   const profileURL = new URL(`https://engagement-calculator.brand-fit.workers.dev/fake-data`);
   profileURL.searchParams.set("h", req.handle);
-  //profileURL.searchParams.set("p", req.platform || "it");
   profileURL.searchParams.set("uu", uuid);
   profileURL.searchParams.set("tk", captchaToken);
 
@@ -188,22 +166,17 @@ let currentHandle;
 let searchedProfile = {};
 const handleTextChange = async (e) => {
   autocompleteLoaderEle.style.display = "block";
-  //if (timeId) clearTimeout(timeId);
   const query = e.target.value;
   const query_input_value = searchInput.value;
   currentHandle = query;
-  // console.log("Testing values::", { query, query_input_value });
   if (!query || !query.length) {
     autocompleteLoaderEle.style.display = "none";
     resultList.innerHTML = "";
     return;
   }
-  //let results;
   fetchResults({
     query,
     onSuccess: (results) => {
-      // console.log("Autocomplte values", results);
-
       autocompleteLoaderEle.style.display = "none";
       if (query.length && results && results.data.length) {
         resultList.innerHTML = "";
@@ -211,11 +184,8 @@ const handleTextChange = async (e) => {
           const cloneListItem = listItem.cloneNode(true);
           const itemImg = cloneListItem.querySelector(listItemImgAttr);
           const itemFullName = cloneListItem.querySelector(listItemNameAttr);
-          const itemUsername =
-            cloneListItem.querySelector(listItemUsernameAttr);
-          const itemVerified = cloneListItem.querySelector(
-            listItemIsVerifiedAttr
-          );
+          const itemUsername = cloneListItem.querySelector(listItemUsernameAttr);
+          const itemVerified = cloneListItem.querySelector(listItemIsVerifiedAttr);
 
           itemImg.src = profile.picture;
           itemImg.alt = `${profile.fullname}'s image`;
@@ -225,7 +195,6 @@ const handleTextChange = async (e) => {
             itemVerified.style.display = "none";
           }
           cloneListItem.addEventListener("click", () => {
-            //searchInput.value = "";
             searchInput.value = profile.username;
             currentHandle = profile.username;
             resultList.style.display = "none";
@@ -238,7 +207,6 @@ const handleTextChange = async (e) => {
         resultList.style.zIndex = 10;
         resultList.style.display = "flex";
       } else {
-        //resultList.style.display = "none";
         resultList.innerHTML = `<div> No results found </div>`;
       }
     },
@@ -255,25 +223,9 @@ const formatDateTime = (date = new Date()) => {
     hour12: true,
   };
 
-  const formattedDate = new Intl.DateTimeFormat("en-US", options).format(date);
-  // console.log(formattedDate);
-  return formattedDate;
+  return new Intl.DateTimeFormat("en-US", options).format(date);
 };
 
-const formatDate = (date = new Date()) => {
-  const options = {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  };
-
-  const formattedDate = new Intl.DateTimeFormat("en-IN", options).format(date);
-  // console.log(formattedDate);
-  return formattedDate;
-};
-let chart1;
-let chart2;
-let chart3;
 const updateGraphs = (graphsData) => {
   const { followerTypes, followers, likes } = graphsData;
 
@@ -309,30 +261,9 @@ const updateProfilePage = (results) => {
   NoProfileDateEle.style.display = "none";
   MainHeroSectionEle.style.display = "block";
   mainSpinnerEle.style.display = "none";
-  //basic profile info
   const profilePicEle = document.querySelector(Selectors.profilePicture);
   const profileNameEle = document.querySelector(Selectors.fullname);
-  const profileVerifiedEle = document.querySelector(Selectors.profileVerified);
   const profileUsernameEle = document.querySelector(Selectors.username);
-  const profilelinkEle = document.querySelector(Selectors.profileLink);
-  const popupImageEle = document.querySelector(Selectors.popupImage);
-  const popupUsernameEle = document.querySelector(Selectors.popupUsername);
-
-  const engRateEle = document.querySelector(Selectors.engagementRate);
-  const followersEle = document.querySelector(Selectors.followers);
-  const avgLikesEle = document.querySelector(Selectors.avgLikes);
-  const realFollowersEle = document.querySelector(Selectors.realFollowers);
-  const influencersFollowersEle = document.querySelector(
-    Selectors.influencersFollowers
-  );
-  const suspiciousFollowersEle = document.querySelector(
-    Selectors.suspiciousFollowers
-  );
-  const massFollowersEle = document.querySelector(Selectors.massFollowers);
-
-  // const engMedianRateEle = document.querySelector(Selectors.medianER);
-  //const highLowThanEle = document.querySelector(Selectors.highLowThan);
-  // const avgCommentsEle = document.querySelector(Selectors.avgComments);
 
   if (results && Object.keys(results).length > 1) {
     const { profile, stats, followers, growth } = results;
@@ -340,11 +271,6 @@ const updateProfilePage = (results) => {
       profilePicEle.src = profile.imageUrl;
       profileNameEle.innerText = profile.fullName;
       profileUsernameEle.innerText = profile.username;
-      popupImageEle.src = profile.imageUrl;
-      popupUsernameEle.innerText = profile.username;
-      if (!profile.isVerified) {
-        profileVerifiedEle.style.display = "none";
-      }
       profilelinkEle.addEventListener("click", () =>
         window.open(profile.url, "blank")
       );
@@ -365,22 +291,9 @@ const updateProfilePage = (results) => {
     }
 
     if (stats) {
-      engRateEle.innerText = `${stats.engagementRate}%`;
-      /*  engMedianRateEle.innerText = `${Math.abs(stats.medianRate)}%`;
-      if (stats.medianRate < 0) {
-        highLowThanEle.innerText = "lower ";
-      } */
       fakeFollowersEle.innerText = `${stats.fakeFollowersRate}%` || "";
       followersEle.innerText = stats.followers || "";
       avgLikesEle.innerText = stats.averageLikes || "";
-      //avgCommentsEle.innerText = stats.averageComments || "";
-    }
-
-    if (followers) {
-      realFollowersEle.innerText = `${followers.real}%`;
-      influencersFollowersEle.innerText = `${followers.influencers}%`;
-      suspiciousFollowersEle.innerText = `${followers.suspicious}%`;
-      massFollowersEle.innerText = `${followers.massFollowers}%`;
     }
 
     if (growth) {
@@ -392,8 +305,6 @@ const updateProfilePage = (results) => {
       updateGraphs(graphData);
     }
   } else {
-    // console.log("Show Error Toast");
-    // alert("Too many requests. please try after sometime");
     SampleHeaderUsernameEle.style.color = UsernameColor;
     SampleHeaderUsernameEle.innerText = `@${currentHandle}`;
     MainHeroSectionEle.style.display = "none";
@@ -402,7 +313,6 @@ const updateProfilePage = (results) => {
   }
 };
 
-// POST-PAYMENT handling: if user paid and returned, fetch and show report
 const handlePostPayment = async () => {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -414,11 +324,8 @@ const handlePostPayment = async () => {
       const handle = pending || profileParam || currentHandle;
       if (handle) {
         currentHandle = handle;
-        // clean URL
         cleanReturnUrl(currentHandle);
-        // clear pending
         sessionStorage.removeItem('pendingUsername');
-        // show loader
         mainSpinnerEle.style.display = 'block';
         const results = await fetchFakeDataInfo({ handle: currentHandle });
         updateProfilePage(results);
@@ -430,7 +337,6 @@ const handlePostPayment = async () => {
   }
 };
 
-// MODIFIED: handleUsernameSubmit now redirects to Stripe
 const handleUsernameSubmit = async (e) => {
   e?.preventDefault();
   submitButton.style.color = HeadingColor;
@@ -444,12 +350,7 @@ const handleUsernameSubmit = async (e) => {
     return;
   }
 
-  // Save pending username so we can show report after payment
   sessionStorage.setItem('pendingUsername', currentHandle);
-
-  // NOTE: For Payment Links you must configure the "After payment" redirect in Stripe Dashboard
-  // to include `?profile={USERNAME}&payment_success=true` so the app can detect the return.
-  // We pass client_reference_id as a hint; Stripe Dashboard must be set to redirect back to your site.
   const clientRef = encodeURIComponent(currentHandle);
   window.location.href = `${STRIPE_PAYMENT_LINK}?client_reference_id=${clientRef}`;
 };
@@ -460,12 +361,10 @@ const generateCopyUrl = (query, onSuccess, onFailure) => {
   function updateClipboard(newClip) {
     navigator.clipboard.writeText(newClip).then(
       () => {
-        /* clipboard successfully set */
         console.log("Copied");
         onSuccess();
       },
       () => {
-        /* clipboard write failed */
         onFailure();
       }
     );
@@ -482,9 +381,12 @@ const updateBrowserUrl = () => {
   window.history.pushState(null, null, `?profile=${currentHandle}`);
 };
 
-const updateAppState = (username) => {
+const updateAppState = (username, autoSubmit = false) => {
   currentHandle = username;
-  handleUsernameSubmit();
+  if (searchInput) searchInput.value = username || "";
+  if (autoSubmit) {
+    handleUsernameSubmit();
+  }
 };
 
 searchInput.addEventListener("input", handleTextChange);
@@ -495,13 +397,11 @@ HeroAreaEle.addEventListener("click", (e) => {
   }
 });
 window.addEventListener("load", (ev) => {
-  // On load, check if user returned from Stripe and show report
   handlePostPayment();
 });
 
 function debounce(cb, delay = 300) {
   let timeout;
-
   return (...args) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => {
@@ -509,17 +409,13 @@ function debounce(cb, delay = 300) {
     }, delay);
   };
 }
-
 function renderDoughnutGraph(graphData) {
-  console.log("XAxis data:", graphData);
-
   return new window.Chart(graphData.ref, {
     type: "doughnut",
     data: {
       labels: ["Real", "Influencers", "Suspicious", "Mass followers"],
       datasets: [
         {
-          // label: "My First Dataset",
           data: graphData.data,
           backgroundColor: ["#00C65F", "#680DE4", "#D91D4A", "#B3F001"],
           hoverOffset: 4,
@@ -552,13 +448,10 @@ function renderDoughnutGraph(graphData) {
     },
   });
 }
-
 function renderLineGraph(graphData) {
-  console.log("XAxis data:", graphData);
   const formattedMonths = graphData.xAxisData.map((date) => {
     const dateObj = new Date(`${date}-01`);
     const formatedDate = formatDate(dateObj);
-    console.log("<<Formated date >>", formatedDate);
     const [day, month, year] = formatedDate.split("-");
     return `${month} '${year}`;
   });
@@ -569,7 +462,6 @@ function renderLineGraph(graphData) {
       labels: formattedMonths,
       datasets: [
         {
-          // label: "My First Dataset",
           data: graphData.yAxisData,
           backgroundColor: "#fffff",
           borderWidth: 2,
@@ -606,17 +498,15 @@ function renderLineGraph(graphData) {
       scales: {
         y: {
           border: {
-            dash: [5, 5], // An array defining the line style (e.g., [dash length, gap length])
+            dash: [5, 5],
           },
           ticks: {
             color: "#333",
             font: {
               weight: 700,
-              // size: 14
             },
             callback: function (value, index, values) {
-              // Your custom formatting logic for y-axis labels
-              return largeNumberFormatter(value); // Example formatting
+              return largeNumberFormatter(value);
             },
           },
         },
@@ -627,7 +517,6 @@ function renderLineGraph(graphData) {
           ticks: {
             font: {
               weight: 700,
-              //size: 14
             },
           },
         },
@@ -636,13 +525,9 @@ function renderLineGraph(graphData) {
     },
   });
 }
-
 const largeNumberFormatter = (value) => {
   if (!value) return;
   let formatter = Intl.NumberFormat("en", { notation: "compact" });
-  // example 1
   let formattedValue = formatter.format(value);
-  // print
-  //console.log(`Before:${value}  and after values: ${formattedValue} >>> `);
   return formattedValue;
 };
